@@ -1,0 +1,67 @@
+service: aws-node-rest-api-typescript
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  environment:
+    NODE_ENV: dev
+    SQS_QUEUE_URL: { Ref: NewSQSQueue }
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sqs:*
+      Resource:
+        Fn::GetAtt: [ NewSQSQueue, Arn ]
+
+resources:
+  Resources:
+    NewSQSQueue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: sqs-queue-${opt:stage, self:provider.stage}.fifo
+        FifoQueue: true
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+  - serverless-dotenv-plugin 
+
+package:
+  exclude:
+    - config/.env.stg
+    - config/.env.pro
+  include:
+    - config/.env.dev
+
+functions:
+  create:
+    handler: app/handler.create
+    events:
+      - http:
+          path: books
+          method: post
+  update:
+    handler: app/handler.update
+    events:
+      - http:
+          path: books/{id}
+          method: put
+  find:
+    handler: app/handler.find
+    events:
+      - http:
+          path: books
+          method: get
+  findOne:
+    handler: app/handler.findOne
+    events:
+      - http:
+          path: books/{id}
+          method: get
+
+  deleteOne:
+    handler: app/handler.deleteOne
+    events:
+      - http:
+          path: books/{id}
+          method: delete
